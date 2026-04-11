@@ -10,7 +10,7 @@ pipeline {
 
     environment {
         env.DOCKER_REPO = "yaroslavdomb/DevOps_project2"
-        env.REGISTRY_CREDS_ID = 'local-registry-credential-ID' //name that should be mentioned in Jenkins Master while configure repositiry access
+        env.REGISTRY_CREDS_ID = 'local-registry-credential-ID' //name that should be mentioned in Jenkins Master while configure repositiry access. Set the data inside registry 
     }
 
     triggers {
@@ -54,6 +54,30 @@ pipeline {
                     echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into local Registry ..."
                     sh "docker push ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
                     sh "docker logout"
+                }
+            }
+        }
+
+        //optional, used to fast track deploy build number
+        stage('Update Version File') {
+            steps {
+                withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOKEN')]) {
+                    script {
+
+                        sh "echo ${env.IMAGE_TAG} > version.txt"
+
+                        //TODO: move the config into Jenkins CRED and get them from env vars
+                        sh "git config user.email 'jenkins@example.com'"
+                        sh "git config user.name 'Jenkins CI'"
+                        
+                        // Login into GIT with
+                        sh "git remote set-url origin https://${GITHUB_TOKEN}@github.com/${env.GITHUB_USER}/${env.GITHUB_REPO}.git"
+                        
+                        //[skip ci] - will be parsed by Git plugin
+                        sh "git add version.txt"
+                        sh "git commit -m 'Release version ${env.IMAGE_TAG} [skip ci]'"
+                        sh "git push origin development"
+                    }
                 }
             }
         }

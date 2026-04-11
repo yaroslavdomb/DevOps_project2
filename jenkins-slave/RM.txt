@@ -1,8 +1,14 @@
+//********************************************
+Project source:
+    https://github.com/YakirBar/jenkins-public-labs/blob/main/%F0%9F%9A%80%20Mini%20Project%20%E2%80%93%20GitHub%20Webhooks%20%2B%20Jenkins%20%2B%20Jira.md
+
+//********************************************
 TO DO List:
     1) Create visualisation of the project (Architecture Diagram)
     2) Use ngrok for execution webhook call to Master Jenkins from GitHub
         Need to check how could be updated URL of Master in auto mode 
 
+//********************************************
 
 
 
