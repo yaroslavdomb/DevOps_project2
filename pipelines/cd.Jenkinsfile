@@ -56,11 +56,7 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            cleanWs()
-        }
-
+    post { 
         success {
             echo "Deployment successful! Running: ${env.CONTAINER_NAME}"
 
@@ -91,6 +87,10 @@ pipeline {
                 }
             }
             echo "--------------------------------------------------------"
+        }
+
+        cleanup {
+            cleanWs()
         }
     }
 }

@@ -63,12 +63,11 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'github-api-pat-token-for-proj2', variable: 'GITHUB_TOKEN')]) {
                     script {
-
                         sh "echo ${env.IMAGE_TAG} > version.txt"
 
-                        //TODO: move the config into Jenkins CRED and get them from env vars
-                        sh "git config user.email 'jenkins@example.com'"
-                        sh "git config user.name 'Jenkins CI'"
+                        // It's git identity data (not credentials!)
+                        sh "git config user.email 'yaroslav.domb@gmail.com'"
+                        sh "git config user.name 'yaroslavdomb'"
                         
                         // Login into GIT with
                         sh "git remote set-url origin https://${GITHUB_TOKEN}@github.com/${env.GITHUB_USER}/${env.GITHUB_REPO}.git"
@@ -82,35 +81,28 @@ pipeline {
             }
         }
         
-        stage('Create PR to MAIN') {
+        //automatically call CD 
+        stage('Trigger CD Pipeline') {
             steps {
-                // Для этого этапа потребуется GitHub Token, сохраненный в Jenkins
-                // и установленный GitHub CLI на агенте (или использование API через curl)
-                withCredentials([string(credentialsId: 'github-api-pat-token-for-proj2', variable: 'GITHUB_TOKEN')]) {
-                    sh """
-                    curl -X POST \
-                    -H "Authorization: token ${GITHUB_TOKEN}" \
-                    -H "Accept: application/vnd.github.v3+json" \
-                    https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
-                    -d '{"title":"Auto-PR from CI: ${IMAGE_TAG}","head":"DEV","base":"MAIN", \
-                    "body":"Automated PR created by Jenkins pipeline after successful CI build."}'
-                    """
-                }
+                build job: 'cd-pipeline',
+                    wait: false,
             }
         }
     }
 
+    //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
+    // so it could be a trap using cleaning in always stage
     post {
-        always {
-            cleanWs() //could fail here if Master has no installed "Workspace Cleanup" plugin
-        }
-
         failure {
             echo "Pipeline failed for Build #${env.BUILD_NUMBER}. Check logs at: ${env.BUILD_URL}"
         }
         
         success {
             echo "CI finished with Success for ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
+        }
+
+        cleanup {
+            cleanWs()
         }
     }
 }
