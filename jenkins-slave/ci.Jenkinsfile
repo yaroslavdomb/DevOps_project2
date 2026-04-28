@@ -9,8 +9,8 @@ pipeline {
     }
 
     environment {
-        env.DOCKER_REPO = "yaroslavdomb/DevOps_project2"
-        env.REGISTRY_CREDS_ID = 'local-registry-credential-ID' //name that should be mentioned in Jenkins Master while configure repositiry access. Set the data inside registry 
+        env.DOCKER_REPO = "yaroslavdomb/devops_project2"
+        env.REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
     }
 
     triggers {
@@ -61,7 +61,7 @@ pipeline {
         //optional, used to fast track deploy build number
         stage('Update Version File') {
             steps {
-                withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([string(credentialsId: 'github-api-pat-token-for-proj2', variable: 'GITHUB_TOKEN')]) {
                     script {
 
                         sh "echo ${env.IMAGE_TAG} > version.txt"
@@ -86,7 +86,7 @@ pipeline {
             steps {
                 // Для этого этапа потребуется GitHub Token, сохраненный в Jenkins
                 // и установленный GitHub CLI на агенте (или использование API через curl)
-                withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([string(credentialsId: 'github-api-pat-token-for-proj2', variable: 'GITHUB_TOKEN')]) {
                     sh """
                     curl -X POST \
                     -H "Authorization: token ${GITHUB_TOKEN}" \

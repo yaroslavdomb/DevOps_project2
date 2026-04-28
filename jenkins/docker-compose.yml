@@ -1,0 +1,41 @@
+version: "3.8"
+services:
+    jenkins-master-proj2:
+        image: jenkins/jenkins:lts-jdk21
+        container_name: jenkins-master-proj2
+        ports:
+            - "8090:8080"
+            - "50000:50000"
+        volumes:
+            - jenkins_home:/var/jenkins_home
+        networks:
+            - cicd-net
+        environment:
+            - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
+
+    slave-app:
+        image: yaroslavdomb/jenkins-slave:latest
+        container_name: slave-app
+        environment:
+            - JENKINS_URL=http://jenkins-master-proj2:8080
+            - JENKINS_AGENT_NAME=slave-app
+            - JENKINS_SECRET=${SLAVE_APP_SECRET}
+        networks:
+            - cicd-net
+
+    slave-infra:
+        image: yaroslavdomb/jenkins-slave:latest
+        container_name: slave-infra
+        environment:
+            - JENKINS_URL=http://jenkins-master-proj2:8080
+            - JENKINS_AGENT_NAME=slave-infra
+            - JENKINS_SECRET=${SLAVE_INFRA_SECRET}
+        networks:
+            - cicd-net
+
+volumes:
+    jenkins_home:
+
+networks:
+    cicd-net:
+        driver: bridge
