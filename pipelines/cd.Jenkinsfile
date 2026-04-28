@@ -56,6 +56,8 @@ pipeline {
         }
     }
 
+    //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
+    // so it could be a trap using cleaning in always stage
     post { 
         success {
             echo "Deployment successful! Running: ${env.CONTAINER_NAME}"
