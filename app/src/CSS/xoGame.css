@@ -1,0 +1,165 @@
+html {
+    height: 100%;
+}
+
+body {
+    background-color: #333333;
+    text-align: center;
+    margin: 0;
+}
+
+h1 {
+    text-align: center;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.gamePack {
+    margin-left: 2rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 1.82rem;
+    padding-left: 0;
+}
+
+.playBoard {
+    display: inline-grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 0.5rem;
+    background-color: blueviolet;
+    border-radius: 0.5rem;
+    align-self: flex-start;
+}
+
+.cell {
+    width: 12rem;
+    height: 12rem;
+    border: 1px solid black;
+    background-color: beige;
+    color: blue;
+    font-size: 5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.takenByO {
+    background-color: rgb(131, 247, 30);
+}
+
+.takenByX {
+    background-color: rgb(216, 92, 227);
+}
+
+.winner {
+    background-color: rgb(243, 219, 37) !important;
+}
+
+.options {
+    width: 13rem;
+    background-color: beige;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 37.25rem;
+    box-sizing: border-box;
+    padding: 0.7rem;
+    border-radius: 1rem;
+    border: 0.3rem solid blueviolet;
+}
+
+.playersData fieldset,
+.next-turn {
+    display: block;
+    min-width: 12rem;
+    box-sizing: border-box;
+    padding: 0.5rem;
+    border: 2px solid black;
+    background-color: beige;
+}
+
+.playersData fieldset {
+    margin-bottom: 0.5rem;
+}
+
+.playersData fieldset label,
+.playersData fieldset input {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.next-turn .row {
+    margin-bottom: 0.5rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.next-turn .label {
+    white-space: nowrap;
+}
+
+.next-turn .output {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid #999;
+    border-radius: 0.2rem;
+    min-height: 1.4em;
+    overflow: hidden;
+    box-sizing: border-box;
+    background-color: #fff;
+}
+
+[type="button"] {
+    margin: 0.5rem 0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border: 1px solid black;
+    border-radius: 0.3rem;
+    background-color: #7ef29d;
+    width: 92%;
+    box-sizing: border-box;
+}
+
+legend {
+    font-size: larger;
+    font-weight: bolder;
+}
+
+#statisticBlock {
+    width: 13rem;
+    background-color: beige;
+    height: 37.25rem;
+    box-sizing: border-box;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+#statisticBlock label {
+    text-align: left;
+    display: block;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+#statisticBlock[hidden] {
+    display: none !important;
+}
+
+.playersData.frozen {
+    opacity: 0.5;
+}
+
+.playersData.frozen label,
+.playersData.frozen input {
+    color: #777;
+}
+
+.playersData.frozen input {
+    background-color: #e0e0e0;
+}
