@@ -78,6 +78,9 @@ pipeline {
                         // It's git identity data (not credentials!)
                         sh "git config user.email 'yaroslav.domb@gmail.com'"
                         sh "git config user.name 'yaroslavdomb'"
+
+                        // switching to the branch
+                        sh "git checkout development || git checkout -b development"
                         
                         // Login into GIT with Token
                         sh "git remote set-url origin https://${GITHUB_TOKEN}@github.com/${env.GITHUB_USER}/${env.GITHUB_REPO}.git"
