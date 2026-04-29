@@ -3,6 +3,10 @@ pipeline {
         label 'slave-app'
     }
 
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: '', description: 'Docker image tag to deploy')
+    }
+
     triggers {
         pollSCM('* * * * *') 
     }
@@ -12,6 +16,7 @@ pipeline {
         REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
         CONTAINER_NAME = "my-web-app"
         TRACK_JOB_NAME = 'track-pipeline'
+        FINAL_TAG = "${params.IMAGE_TAG ?: sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()}"
     }
 
     stages {
@@ -21,15 +26,10 @@ pipeline {
             }
         }
 
-        stage('Get Image Version') {
+        stage('Identify Version') {
             steps {
                 script {
-                    if (fileExists('version.txt')) {
-                        env.IMAGE_TAG = readFile('version.txt').trim()
-                        echo "Target image tag identified: ${env.IMAGE_TAG}"
-                    } else {
-                        error "version.txt not found! Cannot proceed with deployment."
-                    }
+                    echo "Target image tag identified: ${env.FINAL_TAG}"
                 }
             }
         }
@@ -41,8 +41,8 @@ pipeline {
                                      usernameVariable: 'REGISTRY_USER',
                                      passwordVariable: 'REGISTRY_PASS')]) {
                         sh "echo ${REGISTRY_PASS} | docker login -u ${REGISTRY_USER} --password-stdin"
-                        echo "Pulling image ${env.DOCKER_REPO}:${env.IMAGE_TAG}..."
-                        sh "docker pull ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
+                        echo "Pulling image ${env.DOCKER_REPO}:${env.FINAL_TAG}..."
+                        sh "docker pull ${env.DOCKER_REPO}:${env.FINAL_TAG}"
                         sh "docker logout"
                     }
                 }
@@ -52,9 +52,9 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 script {
-                    echo "Delete old version and start new container ${env.CONTAINER_NAME}"
+                    echo "Replacing old container ${env.CONTAINER_NAME} with version ${env.FINAL_TAG}"
                     sh "docker rm -f ${env.CONTAINER_NAME} || true"
-                    sh "docker run -d --name ${env.CONTAINER_NAME} -p 80:80 ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
+                    sh "docker run -d --name ${env.CONTAINER_NAME} -p 80:80 ${env.DOCKER_REPO}:${env.FINAL_TAG}"
                 }
             }
         }
@@ -68,12 +68,12 @@ pipeline {
 
             // ── Trigger Part 4: Jira Track Pipeline ──────────────────────
             script {
-                def commitMsg = env.GIT_COMMIT_MESSAGE ?: 'No commit message'
+                def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
 
                 build job: "${env.TRACK_JOB_NAME}",
                       wait: false,
                       parameters: [
-                          string(name: 'IMAGE_TAG', value: "${env.IMAGE_TAG}"),
+                          string(name: 'IMAGE_TAG', value: "${env.FINAL_TAG}"),
                           string(name: 'COMMIT_MESSAGE', value: "${commitMsg}"),
                           string(name: 'BUILD_URL_CD', value: "${env.BUILD_URL}")
                       ]
