@@ -9,14 +9,16 @@ pipeline {
     }
 
     environment {
-        env.DOCKER_REPO = "yaroslavdomb/devops_project2"
-        env.REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
+        DOCKER_REPO = "yaroslavdomb/devops_project2"
+        REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
+        GITHUB_USER = 'yaroslavdomb'
+        GITHUB_REPO = 'DevOps_project2'
     }
 
     triggers {
-        // Check github each 2 minutes in random time of that period
+        // Check github each minute in random time of that period
         // Futher ngrok could be used in GitHub as Jenkins outer trigger  
-        pollSCM('H/2 * * * *') 
+        pollSCM('H/1 * * * *') 
     }
 
     stages {
@@ -91,7 +93,7 @@ pipeline {
                     -H "Authorization: token ${GITHUB_TOKEN}" \
                     -H "Accept: application/vnd.github.v3+json" \
                     https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
-                    -d '{"title":"Auto-PR from CI: ${IMAGE_TAG}","head":"DEV","base":"MAIN", \
+                    -d '{"title":"Auto-PR from CI: ${IMAGE_TAG}","head":"development","base":"main", \
                     "body":"Automated PR created by Jenkins pipeline after successful CI build."}'
                     """
                 }
