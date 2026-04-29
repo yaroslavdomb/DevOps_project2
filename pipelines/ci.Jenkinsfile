@@ -16,7 +16,6 @@ pipeline {
     }
 
     triggers {
-        // Check github each minute in random time of that period
         // Futher ngrok could be used in GitHub as Jenkins outer trigger  
         pollSCM('* * * * *') 
     }
@@ -39,24 +38,7 @@ pipeline {
 
         stage('Branch Checkout') {
             steps {
-                checkout([$class: 'GitSCM', 
-                    branches: scm.branches,
-                    doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-                    extensions: scm.extensions + [[$class: 'MessageExclusion', excludedMessage: '.*\\[skip ci\\].*']],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
-            }
-        }
-
-        stage('Check Skip CI') {
-            steps {
-                script {
-                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
-                    if (commitMsg.contains('[skip ci]')) {
-                        currentBuild.result = 'SUCCESS'
-                        error("Stopping build because [skip ci] was detected in commit message.")
-                    }
-                }
+                checkout scm
             }
         }
 
@@ -83,35 +65,6 @@ pipeline {
             }
         }
 
-        // Not part of task but it's bestpracties to set additional level of CD trigger confirmation. 
-        // Also used to fast track deploy build number
-        stage('Update Version File') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2',
-                                                    passwordVariable: 'GITHUB_TOKEN', 
-                                                    usernameVariable: 'GITHUB_USER_UNUSED')]) {
-                    script {
-                        sh "echo ${env.IMAGE_TAG} > version.txt"
-
-                        // It's git identity data (not credentials!)
-                        sh "git config user.email 'yaroslav.domb@gmail.com'"
-                        sh "git config user.name 'yaroslavdomb'"
-
-                        // switching to the branch
-                        sh "git checkout development || git checkout -b development"
-                        
-                        // Login into GIT with Token
-                        sh "git remote set-url origin https://${GITHUB_TOKEN}@github.com/${env.GITHUB_USER}/${env.GITHUB_REPO}.git"
-                        
-                        //[skip ci] - will be parsed by Git plugin
-                        sh "git add version.txt"
-                        sh "git commit -m 'Release version ${env.IMAGE_TAG} [skip ci]'"
-                        sh "git push origin development"
-                    }
-                }
-            }
-        }
-
         stage('Create PR to MAIN') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2', 
@@ -128,14 +81,6 @@ pipeline {
                 }
             }
         }
-
-        //automatically call CD 
-        // stage('Trigger CD Pipeline') {
-        //     steps {
-        //         build job: 'cd-pipeline',
-        //             wait: false,
-        //     }
-        // }
     }
 
     //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
