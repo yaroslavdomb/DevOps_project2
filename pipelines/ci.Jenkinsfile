@@ -45,9 +45,10 @@ pipeline {
         stage('Build Image') {
             steps {
                 script {
-                    env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    echo "New image under construction: ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
-                    sh "docker build -t ${env.DOCKER_REPO}:${env.IMAGE_TAG} ./app"
+                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    echo "New image under construction: ${env.DOCKER_REPO}:${commitHash}"
+                    sh "docker build -t ${env.DOCKER_REPO}:${commitHash} ./app"
+                    env.IMAGE_TAG = commitHash
                 }
             }
         }
@@ -58,7 +59,7 @@ pipeline {
                                                  usernameVariable: 'REGISTRY_USER', 
                                                  passwordVariable: 'REGISTRY_PASS')]) {
                     sh "echo ${REGISTRY_PASS} | docker login -u ${REGISTRY_USER} --password-stdin"
-                    echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into local Registry ..."
+                    echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into Registry ..."
                     sh "docker push ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
                     sh "docker logout"
                 }
