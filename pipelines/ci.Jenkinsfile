@@ -9,22 +9,29 @@ pipeline {
     }
 
     environment {
-        env.DOCKER_REPO = "yaroslavdomb/DevOps_project2"
-        env.REGISTRY_CREDS_ID = 'local-registry-credential-ID' //name that should be mentioned in Jenkins Master while configure repositiry access. Set the data inside registry 
+        DOCKER_REPO = "yaroslavdomb/devops_project2"
+        REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
+        GITHUB_USER = 'yaroslavdomb'
+        GITHUB_REPO = 'DevOps_project2'
     }
 
     triggers {
-        // Check github each 2 minutes in random time of that period
+        // Check github each minute in random time of that period
         // Futher ngrok could be used in GitHub as Jenkins outer trigger  
-        pollSCM('H/2 * * * *') 
+        pollSCM('H/1 * * * *') 
     }
 
     stages {
         stage("Branch Validation") {
             steps {
                 script {
-                    if (env.BRANCH_NAME != 'development') {
-                        error "Pipeline should only run on 'development' branch. Current branch named: ${env.BRANCH_NAME}"
+                    def branch = env.BRANCH_NAME ?: env.GIT_BRANCH
+                    if (!branch) {
+                        branch = scm.branches[0].name
+                    }
+                    echo "Detected branch: ${branch}"
+                    if (!(branch.contains('development'))) {
+                        error "Pipeline should only run on 'development' branch. Current branch: ${branch}"
                     }
                 }
             }
@@ -58,19 +65,24 @@ pipeline {
             }
         }
 
-        //optional, used to fast track deploy build number
+        // Not part of task but it's bestpracties to set additional level of CD trigger confirmation. 
+        // Also used to fast track deploy build number
         stage('Update Version File') {
             steps {
-                withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2',
+                                                    passwordVariable: 'GITHUB_TOKEN', 
+                                                    usernameVariable: 'GITHUB_USER_UNUSED')]) {
                     script {
-
                         sh "echo ${env.IMAGE_TAG} > version.txt"
 
-                        //TODO: move the config into Jenkins CRED and get them from env vars
-                        sh "git config user.email 'jenkins@example.com'"
-                        sh "git config user.name 'Jenkins CI'"
+                        // It's git identity data (not credentials!)
+                        sh "git config user.email 'yaroslav.domb@gmail.com'"
+                        sh "git config user.name 'yaroslavdomb'"
+
+                        // switching to the branch
+                        sh "git checkout development || git checkout -b development"
                         
-                        // Login into GIT with
+                        // Login into GIT with Token
                         sh "git remote set-url origin https://${GITHUB_TOKEN}@github.com/${env.GITHUB_USER}/${env.GITHUB_REPO}.git"
                         
                         //[skip ci] - will be parsed by Git plugin
@@ -81,36 +93,46 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Create PR to MAIN') {
             steps {
-                // Для этого этапа потребуется GitHub Token, сохраненный в Jenkins
-                // и установленный GitHub CLI на агенте (или использование API через curl)
-                withCredentials([string(credentialsId: 'github-api-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2', 
+                                                 passwordVariable: 'GITHUB_TOKEN', 
+                                                 usernameVariable: 'GITHUB_USER_UNUSED')]) {
                     sh """
                     curl -X POST \
                     -H "Authorization: token ${GITHUB_TOKEN}" \
                     -H "Accept: application/vnd.github.v3+json" \
                     https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
-                    -d '{"title":"Auto-PR from CI: ${IMAGE_TAG}","head":"DEV","base":"MAIN", \
+                    -d '{"title":"Auto-PR from CI: ${IMAGE_TAG}","head":"development","base":"main", \
                     "body":"Automated PR created by Jenkins pipeline after successful CI build."}'
                     """
                 }
             }
         }
+
+        //automatically call CD 
+        // stage('Trigger CD Pipeline') {
+        //     steps {
+        //         build job: 'cd-pipeline',
+        //             wait: false,
+        //     }
+        // }
     }
 
+    //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
+    // so it could be a trap using cleaning in always stage
     post {
-        always {
-            cleanWs() //could fail here if Master has no installed "Workspace Cleanup" plugin
-        }
-
         failure {
             echo "Pipeline failed for Build #${env.BUILD_NUMBER}. Check logs at: ${env.BUILD_URL}"
         }
         
         success {
             echo "CI finished with Success for ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
+        }
+
+        cleanup {
+            cleanWs()
         }
     }
 }

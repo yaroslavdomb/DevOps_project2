@@ -23,8 +23,8 @@ RUN echo "jenkins ALL=(ALL) NOPASSWD: /usr/bin/dockerd" >> /etc/sudoers
 
 RUN adduser jenkins docker
 
-COPY --chmod=744 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chmod=744 entrypoint.sh /usr/local/bin/entrypoint.sh
 
 USER jenkins
 
-ENTRYPOINT ["/usr/local/bin/Entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
