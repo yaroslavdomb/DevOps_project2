@@ -83,14 +83,18 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2', 
                                                  passwordVariable: 'GITHUB_TOKEN', 
                                                  usernameVariable: 'GITHUB_USER_UNUSED')]) {
-                    sh """
-                    curl -X POST \
-                    -H "Authorization: token ${GITHUB_TOKEN}" \
-                    -H "Accept: application/vnd.github.v3+json" \
-                    https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
-                    -d '{"title":"Auto-PR from CI: ${IMAGE_TAG}","head":"development","base":"main", \
-                    "body":"Automated PR created by Jenkins pipeline after successful CI build."}'
-                    """
+                    script {
+                        def pullReqTitle = "Auto-PR from CI: ${env.IMAGE_TAG} [${env.JIRA_TICKET_ID}]"
+                        def pullReqBody = "Automated PR created by Jenkins pipeline after successful CI build."
+                        
+                        sh """
+                            curl -X POST \
+                            -H "Authorization: token ${GITHUB_TOKEN}" \
+                            -H "Accept: application/vnd.github.v3+json" \
+                            https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
+                            -d '{"title":"${pullReqTitle}", "head":"development", "base":"main", "body":"${pullReqBody}"}'
+                        """
+                    }
                 }
             }
         }
