@@ -25,10 +25,13 @@ pipeline {
         stage("Branch Validation") {
             steps {
                 script {
-                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: "unknown"
-                    echo "Detected branch: ${currentBranch}"
-                    if (!(currentBranch.contains('development'))) {
-                        error "Pipeline should only run on 'development' branch. Current branch: ${currentBranch}"
+                    def branch = env.BRANCH_NAME ?: env.GIT_BRANCH
+                    if (!branch) {
+                        branch = scm.branches[0].name
+                    }
+                    echo "Detected branch: ${branch}"
+                    if (!(branch.contains('development'))) {
+                        error "Pipeline should only run on 'development' branch. Current branch: ${branch}"
                     }
                 }
             }
