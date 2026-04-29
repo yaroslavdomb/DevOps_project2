@@ -1,4 +1,3 @@
-version: "3.8"
 services:
     jenkins-master-proj2:
         image: jenkins/jenkins:lts-jdk21
@@ -17,10 +16,18 @@ services:
         image: yaroslavdomb/jenkins-slave:latest
         container_name: slave-app-proj2
         privileged: true
+        dns:
+            - 127.0.0.11
+            - 8.8.8.8
+            - 8.8.4.4
+        sysctls:
+            - net.ipv6.conf.all.disable_ipv6=1
+            - net.ipv6.conf.default.disable_ipv6=1
         environment:
             - JENKINS_URL=http://jenkins-master-proj2:8080
             - JENKINS_AGENT_NAME=slave-app-proj2
             - JENKINS_SECRET=${SLAVE_APP_SECRET}
+            - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
         networks:
             - cicd-net
 
@@ -28,10 +35,18 @@ services:
         image: yaroslavdomb/jenkins-slave:latest
         container_name: slave-infra-proj2
         privileged: true
+        dns:
+            - 127.0.0.11
+            - 8.8.8.8
+            - 8.8.4.4
+        sysctls:
+            - net.ipv6.conf.all.disable_ipv6=1
+            - net.ipv6.conf.default.disable_ipv6=1
         environment:
             - JENKINS_URL=http://jenkins-master-proj2:8080
             - JENKINS_AGENT_NAME=slave-infra-proj2
             - JENKINS_SECRET=${SLAVE_INFRA_SECRET}
+            - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
         networks:
             - cicd-net
 
