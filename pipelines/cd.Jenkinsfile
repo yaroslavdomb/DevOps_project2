@@ -3,6 +3,10 @@ pipeline {
         label 'slave-app'
     }
 
+    triggers {
+        pollSCM('H/1 * * * *') 
+    }
+
     environment {
         DOCKER_REPO = "yaroslavdomb/devops_project2"
         REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
