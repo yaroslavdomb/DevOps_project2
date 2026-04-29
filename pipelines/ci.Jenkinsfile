@@ -18,22 +18,10 @@ pipeline {
     triggers {
         // Check github each minute in random time of that period
         // Futher ngrok could be used in GitHub as Jenkins outer trigger  
-        pollSCM('H/1 * * * *') 
+        pollSCM('* * * * *') 
     }
 
-    stages {
-        stage('Check Skip CI') {
-            steps {
-                script {
-                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
-                    if (commitMsg.contains('[skip ci]')) {
-                        currentBuild.result = 'SUCCESS'
-                        error("Stopping build because [skip ci] was detected in commit message.")
-                    }
-                }
-            }
-        }
-
+    stages { 
         stage("Branch Validation") {
             steps {
                 script {
@@ -48,11 +36,6 @@ pipeline {
                 }
             }
         }
-        // stage('Branch Checkout') {
-        //     steps {
-        //         checkout scm
-        //     }
-        // }
 
         stage('Branch Checkout') {
             steps {
@@ -62,6 +45,18 @@ pipeline {
                     extensions: scm.extensions + [[$class: 'MessageExclusion', excludedMessage: '.*\\[skip ci\\].*']],
                     userRemoteConfigs: scm.userRemoteConfigs
                 ])
+            }
+        }
+
+        stage('Check Skip CI') {
+            steps {
+                script {
+                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    if (commitMsg.contains('[skip ci]')) {
+                        currentBuild.result = 'SUCCESS'
+                        error("Stopping build because [skip ci] was detected in commit message.")
+                    }
+                }
             }
         }
 
