@@ -81,13 +81,30 @@ pipeline {
             }
         }
         
-        //automatically call CD 
-        stage('Trigger CD Pipeline') {
+        stage('Create PR to MAIN') {
             steps {
-                build job: 'cd-pipeline',
-                    wait: false,
+                // Для этого этапа потребуется GitHub Token, сохраненный в Jenkins
+                // и установленный GitHub CLI на агенте (или использование API через curl)
+                withCredentials([string(credentialsId: 'github-api-pat-token-for-proj2', variable: 'GITHUB_TOKEN')]) {
+                    sh """
+                    curl -X POST \
+                    -H "Authorization: token ${GITHUB_TOKEN}" \
+                    -H "Accept: application/vnd.github.v3+json" \
+                    https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
+                    -d '{"title":"Auto-PR from CI: ${IMAGE_TAG}","head":"DEV","base":"MAIN", \
+                    "body":"Automated PR created by Jenkins pipeline after successful CI build."}'
+                    """
+                }
             }
         }
+
+        //automatically call CD 
+        // stage('Trigger CD Pipeline') {
+        //     steps {
+        //         build job: 'cd-pipeline',
+        //             wait: false,
+        //     }
+        // }
     }
 
     //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
