@@ -83,7 +83,7 @@ pipeline {
                             script: """
                                 curl -s -o /tmp/jira_comment_response.json -w "%{http_code}" \\
                                 -X POST \\
-                                -H "Authorization: Bearer ${JIRA_API_TOKEN}" \\
+                                -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \\
                                 -H "Content-Type: application/json" \\
                                 "${JIRA_BASE_URL}/rest/api/3/issue/${env.JIRA_TICKET_ID}/comment" \\
                                 -d '${commentBody}'
@@ -104,6 +104,7 @@ pipeline {
                 }
             }
         }
+
         stage('Close Jira Ticket') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${JIRA_CREDS_ID}", 
@@ -114,7 +115,7 @@ pipeline {
                         def transitionsResponse = sh(
                             script: """
                                 curl -s \\
-                                -H "Authorization: Bearer ${JIRA_API_TOKEN}" \\
+                                -u "${env.JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \\
                                 -H "Content-Type: application/json" \\
                                 "${JIRA_BASE_URL}/rest/api/3/issue/${env.JIRA_TICKET_ID}/transitions"
                             """,
@@ -131,7 +132,7 @@ pipeline {
                         }
 
                         if (!doneTransition) {
-                            echo "⚠️  WARNING: Could not find 'Done' transition for ${env.JIRA_TICKET_ID}."
+                            echo "WARNING: Could not find 'Done' transition for ${env.JIRA_TICKET_ID}."
                             echo "Available transitions: ${transitionsJson.transitions.collect { it.name }}"
                             echo "Skipping auto-close. Close the ticket manually."
                             return
@@ -145,7 +146,7 @@ pipeline {
                             script: """
                                 curl -s -o /tmp/jira_close_response.json -w "%{http_code}" \\
                                 -X POST \\
-                                -H "Authorization: Bearer ${JIRA_API_TOKEN}" \\
+                                -u "${env.JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \\
                                 -H "Content-Type: application/json" \\
                                 "${JIRA_BASE_URL}/rest/api/3/issue/${env.JIRA_TICKET_ID}/transitions" \\
                                 -d '{"transition": {"id": "${env.TRANSITION_ID}"}}'
@@ -155,7 +156,6 @@ pipeline {
 
                         echo "Close transition HTTP code: ${closeResponse}"
 
-                        // 204 = success (no content), 200 = also ok
                         if (closeResponse == '204' || closeResponse == '200') {
                             echo "Jira ticket ${env.JIRA_TICKET_ID} moved to Done."
                         } else {
@@ -174,7 +174,6 @@ pipeline {
         }
         failure {
             echo "Track pipeline failed. Ticket: ${env.JIRA_TICKET_ID ?: 'not extracted'}"
-            echo "Check Jira credentials, ticket ID in commit message, and Jira URL."
         }
         cleanup {
             sh 'rm -f /tmp/jira_comment_response.json /tmp/jira_close_response.json || true'
