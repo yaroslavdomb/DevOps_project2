@@ -18,7 +18,7 @@ pipeline {
     triggers {
         // Check github each minute in random time of that period
         // Futher ngrok could be used in GitHub as Jenkins outer trigger  
-        pollSCM('H/1 * * * *') 
+        pollSCM('1 * * * *') 
     }
 
     stages {
