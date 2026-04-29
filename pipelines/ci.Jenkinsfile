@@ -39,6 +39,18 @@ pipeline {
         stage('Branch Checkout') {
             steps {
                 checkout scm
+                script {
+                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    echo "Commit message: ${commitMsg}"
+                    def matcher = (commitMsg =~ /([A-Z]+-\d+)/)
+                    if (matcher.find()) {
+                        env.JIRA_TICKET_ID = matcher[0][1]
+                        echo "Found Jira Ticket: ${env.JIRA_TICKET_ID}"
+                    } else {
+                        echo "FATAL: No Jira Ticket ID found in commit message!"
+                        error "Missing Jira Ticket ID"
+                    }
+                }
             }
         }
 
