@@ -65,10 +65,13 @@ pipeline {
             }
         }
 
-        //optional, used to fast track deploy build number
+        // Not part of task but it's bestpracties to set additional level of CD trigger confirmation. 
+        // Also used to fast track deploy build number
         stage('Update Version File') {
             steps {
-                withCredentials([string(credentialsId: 'github-api-pat-token-for-proj2', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2',
+                                                    passwordVariable: 'GITHUB_TOKEN', 
+                                                    usernameVariable: 'GITHUB_USER_UNUSED')]) {
                     script {
                         sh "echo ${env.IMAGE_TAG} > version.txt"
 
@@ -76,7 +79,7 @@ pipeline {
                         sh "git config user.email 'yaroslav.domb@gmail.com'"
                         sh "git config user.name 'yaroslavdomb'"
                         
-                        // Login into GIT with
+                        // Login into GIT with Token
                         sh "git remote set-url origin https://${GITHUB_TOKEN}@github.com/${env.GITHUB_USER}/${env.GITHUB_REPO}.git"
                         
                         //[skip ci] - will be parsed by Git plugin
@@ -87,12 +90,12 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Create PR to MAIN') {
             steps {
-                // Для этого этапа потребуется GitHub Token, сохраненный в Jenkins
-                // и установленный GitHub CLI на агенте (или использование API через curl)
-                withCredentials([string(credentialsId: 'github-api-pat-token-for-proj2', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2', 
+                                                 passwordVariable: 'GITHUB_TOKEN', 
+                                                 usernameVariable: 'GITHUB_USER_UNUSED')]) {
                     sh """
                     curl -X POST \
                     -H "Authorization: token ${GITHUB_TOKEN}" \
