@@ -4,10 +4,10 @@ pipeline {
     }
 
     environment {
-        env.DOCKER_REPO = "yaroslavdomb/DevOps_project2"
-        env.REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
-        env.CONTAINER_NAME = "my-web-app"
-        env.TRACK_JOB_NAME = 'track-pipeline'
+        DOCKER_REPO = "yaroslavdomb/devops_project2"
+        REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
+        CONTAINER_NAME = "my-web-app"
+        TRACK_JOB_NAME = 'track-pipeline'
     }
 
     stages {
