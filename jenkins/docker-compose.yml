@@ -13,28 +13,31 @@ services:
         environment:
             - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
 
-    slave-app:
+    slave-app-proj2:
         image: yaroslavdomb/jenkins-slave:latest
-        container_name: slave-app
+        container_name: slave-app-proj2
+        privileged: true
         environment:
             - JENKINS_URL=http://jenkins-master-proj2:8080
-            - JENKINS_AGENT_NAME=slave-app
+            - JENKINS_AGENT_NAME=slave-app-proj2
             - JENKINS_SECRET=${SLAVE_APP_SECRET}
         networks:
             - cicd-net
 
-    slave-infra:
+    slave-infra-proj2:
         image: yaroslavdomb/jenkins-slave:latest
-        container_name: slave-infra
+        container_name: slave-infra-proj2
+        privileged: true
         environment:
             - JENKINS_URL=http://jenkins-master-proj2:8080
-            - JENKINS_AGENT_NAME=slave-infra
+            - JENKINS_AGENT_NAME=slave-infra-proj2
             - JENKINS_SECRET=${SLAVE_INFRA_SECRET}
         networks:
             - cicd-net
 
 volumes:
     jenkins_home:
+        external: true
 
 networks:
     cicd-net:
