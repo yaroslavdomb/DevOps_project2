@@ -36,9 +36,20 @@ pipeline {
                 }
             }
         }
+        // stage('Branch Checkout') {
+        //     steps {
+        //         checkout scm
+        //     }
+        // }
+
         stage('Branch Checkout') {
             steps {
-                checkout scm
+                checkout([$class: 'GitSCM', 
+                    branches: scm.branches,
+                    doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+                    extensions: scm.extensions + [[$class: 'MessageExclusion', excludedMessage: '.*\\[skip ci\\].*']],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
             }
         }
 
