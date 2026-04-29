@@ -25,8 +25,10 @@ pipeline {
         stage("Branch Validation") {
             steps {
                 script {
-                    if (env.BRANCH_NAME != 'development') {
-                        error "Pipeline should only run on 'development' branch. Current branch named: ${env.BRANCH_NAME}"
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: "unknown"
+                    echo "Detected branch: ${currentBranch}"
+                    if (!(currentBranch.contains('development'))) {
+                        error "Pipeline should only run on 'development' branch. Current branch: ${currentBranch}"
                     }
                 }
             }
