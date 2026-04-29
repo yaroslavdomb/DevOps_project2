@@ -16,12 +16,11 @@ pipeline {
     }
 
     triggers {
-        // Check github each minute in random time of that period
         // Futher ngrok could be used in GitHub as Jenkins outer trigger  
         pollSCM('* * * * *') 
     }
 
-    stages {
+    stages { 
         stage("Branch Validation") {
             steps {
                 script {
@@ -36,29 +35,20 @@ pipeline {
                 }
             }
         }
-        // stage('Branch Checkout') {
-        //     steps {
-        //         checkout scm
-        //     }
-        // }
 
         stage('Branch Checkout') {
             steps {
-                checkout([$class: 'GitSCM', 
-                    branches: scm.branches,
-                    doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-                    extensions: scm.extensions + [[$class: 'MessageExclusion', excludedMessage: '.*\\[skip ci\\].*']],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
+                checkout scm
             }
         }
 
         stage('Build Image') {
             steps {
                 script {
-                    env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    echo "New image under construction: ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
-                    sh "docker build -t ${env.DOCKER_REPO}:${env.IMAGE_TAG} ./app"
+                    def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    echo "New image under construction: ${env.DOCKER_REPO}:${commitHash}"
+                    sh "docker build -t ${env.DOCKER_REPO}:${commitHash} ./app"
+                    env.IMAGE_TAG = commitHash
                 }
             }
         }
@@ -69,38 +59,9 @@ pipeline {
                                                  usernameVariable: 'REGISTRY_USER', 
                                                  passwordVariable: 'REGISTRY_PASS')]) {
                     sh "echo ${REGISTRY_PASS} | docker login -u ${REGISTRY_USER} --password-stdin"
-                    echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into local Registry ..."
+                    echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into Registry ..."
                     sh "docker push ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
                     sh "docker logout"
-                }
-            }
-        }
-
-        // Not part of task but it's bestpracties to set additional level of CD trigger confirmation. 
-        // Also used to fast track deploy build number
-        stage('Update Version File') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2',
-                                                    passwordVariable: 'GITHUB_TOKEN', 
-                                                    usernameVariable: 'GITHUB_USER_UNUSED')]) {
-                    script {
-                        sh "echo ${env.IMAGE_TAG} > version.txt"
-
-                        // It's git identity data (not credentials!)
-                        sh "git config user.email 'yaroslav.domb@gmail.com'"
-                        sh "git config user.name 'yaroslavdomb'"
-
-                        // switching to the branch
-                        sh "git checkout development || git checkout -b development"
-                        
-                        // Login into GIT with Token
-                        sh "git remote set-url origin https://${GITHUB_TOKEN}@github.com/${env.GITHUB_USER}/${env.GITHUB_REPO}.git"
-                        
-                        //[skip ci] - will be parsed by Git plugin
-                        sh "git add version.txt"
-                        sh "git commit -m 'Release version ${env.IMAGE_TAG} [skip ci]'"
-                        sh "git push origin development"
-                    }
                 }
             }
         }
@@ -121,14 +82,6 @@ pipeline {
                 }
             }
         }
-
-        //automatically call CD 
-        // stage('Trigger CD Pipeline') {
-        //     steps {
-        //         build job: 'cd-pipeline',
-        //             wait: false,
-        //     }
-        // }
     }
 
     //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
