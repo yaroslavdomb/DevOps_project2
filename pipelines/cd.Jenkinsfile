@@ -40,12 +40,27 @@ pipeline {
             }
         }
 
+        stage('Extract Jira Ticket') {
+            steps {
+                script {
+                    def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    def matcher = (commitMsg =~ /\[([A-Z0-9]+-\d+)\]/)
+                    if (matcher.find()) {
+                        env.EXTRACTED_JIRA_ID = matcher[0][1]
+                        echo "Extracted Jira ID: ${env.EXTRACTED_JIRA_ID}"
+                    } else {
+                        echo "No Jira ID found in commit message."
+                    }
+                }
+            }
+        }
+
         stage('Pull Image') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${REGISTRY_CREDS_ID}",
-                                     usernameVariable: 'REGISTRY_USER',
-                                     passwordVariable: 'REGISTRY_PASS')]) {
+                                                        usernameVariable: 'REGISTRY_USER',
+                                                        passwordVariable: 'REGISTRY_PASS')]) {
                         sh "echo ${REGISTRY_PASS} | docker login -u ${REGISTRY_USER} --password-stdin"
                         echo "Pulling image ${env.DOCKER_REPO}:${env.FINAL_TAG}..."
                         sh "docker pull ${env.DOCKER_REPO}:${env.FINAL_TAG}"
@@ -72,19 +87,17 @@ pipeline {
         success {
             echo "Deployment successful! Running: ${env.CONTAINER_NAME}"
 
-            // ── Trigger Part 4: Jira Track Pipeline ──────────────────────
             script {
-                def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
-
-                build job: "${env.TRACK_JOB_NAME}",
-                      wait: false,
-                      parameters: [
-                          string(name: 'IMAGE_TAG', value: "${env.FINAL_TAG}"),
-                          string(name: 'COMMIT_MESSAGE', value: "${commitMsg}"),
-                          string(name: 'BUILD_URL_CD', value: "${env.BUILD_URL}")
-                      ]
-
-                echo "Track pipeline triggered for ticket in: '${commitMsg}'"
+                if (env.EXTRACTED_JIRA_ID) {
+                    build job: "${env.TRACK_JOB_NAME}",
+                          wait: false,
+                          parameters: [
+                              string(name: 'IMAGE_TAG', value: "${env.FINAL_TAG}"),
+                              string(name: 'JIRA_ID', value: "${env.EXTRACTED_JIRA_ID}"),
+                              string(name: 'BUILD_URL_CD', value: "${env.BUILD_URL}")
+                          ]
+                    echo "Track pipeline triggered for ticket in: '${env.EXTRACTED_JIRA_ID}'"
+                }
             }
         }
 
