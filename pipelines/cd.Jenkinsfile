@@ -16,7 +16,6 @@ pipeline {
         REGISTRY_CREDS_ID = 'docker-pat-token-for-proj2'
         CONTAINER_NAME = "my-web-app"
         TRACK_JOB_NAME = 'track-pipeline'
-        FINAL_TAG = "${params.IMAGE_TAG ?: sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()}"
     }
 
     stages {
@@ -29,7 +28,14 @@ pipeline {
         stage('Identify Version') {
             steps {
                 script {
-                    echo "Target image tag identified: ${env.FINAL_TAG}"
+                    def tag = sh(script: "git show -s --format='%p' HEAD | awk '{print \$2}' | cut -c1-7", returnStdout: true).trim()
+                    
+                    if (tag == "") {
+                        tag = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    }
+                    
+                    env.FINAL_TAG = tag
+                    echo "Target image tag identified from Git history: ${env.FINAL_TAG}"
                 }
             }
         }
