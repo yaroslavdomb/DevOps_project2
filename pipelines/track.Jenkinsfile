@@ -41,7 +41,9 @@ pipeline {
 
         stage('Add Deployment Comment to Jira') {
             steps {
-                withCredentials([string(credentialsId: "${JIRA_CREDS_ID}", variable: 'JIRA_API_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: "${JIRA_CREDS_ID}", 
+                                                    usernameVariable: 'JIRA_USER', 
+                                                    passwordVariable: 'JIRA_API_TOKEN')]) {
                     script {
                         def cdBuildLink = env.BUILD_URL_CD ?: 'N/A'
                         def commentBody = """
@@ -77,7 +79,6 @@ pipeline {
   }
 }
 """
-                        // Для Jira Server/Data Center замени на v2 и plain text body (см. комментарий ниже)
                         def response = sh(
                             script: """
                                 curl -s -o /tmp/jira_comment_response.json -w "%{http_code}" \\
@@ -105,7 +106,9 @@ pipeline {
         }
         stage('Close Jira Ticket') {
             steps {
-                withCredentials([string(credentialsId: "${JIRA_CREDS_ID}", variable: 'JIRA_API_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: "${JIRA_CREDS_ID}", 
+                                                    usernameVariable: 'JIRA_USER', 
+                                                    passwordVariable: 'JIRA_API_TOKEN')]) {
                     script {
                         // Шаг 1: получить доступные transitions для тикета
                         def transitionsResponse = sh(
@@ -173,7 +176,7 @@ pipeline {
             echo "Track pipeline failed. Ticket: ${env.JIRA_TICKET_ID ?: 'not extracted'}"
             echo "Check Jira credentials, ticket ID in commit message, and Jira URL."
         }
-        always {
+        cleanup {
             sh 'rm -f /tmp/jira_comment_response.json /tmp/jira_close_response.json || true'
         }
     }
