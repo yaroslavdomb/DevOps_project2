@@ -4,7 +4,7 @@ pipeline {
     environment {
         JIRA_CREDS_ID = 'atlasian-pat-token-for-proj2'      
         JIRA_BASE_URL = 'https://yaroslavdomb.atlassian.net'
-        JIRA_USER_EMAIL = 'yaroslav.domb@google.com'
+        JIRA_USER_EMAIL = 'yaroslav.domb@gmail.com'
         IMAGE_TAG = "${params.IMAGE_TAG ?: 'unknown'}"
         GIT_COMMIT_MSG = "${params.COMMIT_MESSAGE ?: ''}"
     }
