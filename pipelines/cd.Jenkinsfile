@@ -75,13 +75,14 @@ pipeline {
                 script {
                     echo "Replacing old container ${env.CONTAINER_NAME} with version ${env.FINAL_TAG}"
                     sh "docker rm -f ${env.CONTAINER_NAME} || true"
-                    sh "docker run -d --name ${env.CONTAINER_NAME} -p 80:80 ${env.DOCKER_REPO}:${env.FINAL_TAG}"
+                    sh "docker run -d --name ${env.CONTAINER_NAME} -p 8092:80 ${env.DOCKER_REPO}:${env.FINAL_TAG}"
                 }
             }
         }
     }
 
-    //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
+    // The order of operations is always the same:
+    // always → changed → fixed → regression → aborted → failure → success → unstable → cleanup
     // so it could be a trap using cleaning in always stage
     post { 
         success {
@@ -90,12 +91,12 @@ pipeline {
             script {
                 if (env.EXTRACTED_JIRA_ID) {
                     build job: "${env.TRACK_JOB_NAME}",
-                          wait: false,
-                          parameters: [
-                              string(name: 'IMAGE_TAG', value: "${env.FINAL_TAG}"),
-                              string(name: 'JIRA_ID', value: "${env.EXTRACTED_JIRA_ID}"),
-                              string(name: 'BUILD_URL_CD', value: "${env.BUILD_URL}")
-                          ]
+                        wait: false,
+                        parameters: [
+                            string(name: 'IMAGE_TAG', value: "${env.FINAL_TAG}"),
+                            string(name: 'JIRA_ID', value: "${env.EXTRACTED_JIRA_ID}"),
+                            string(name: 'BUILD_URL_CD', value: "${env.BUILD_URL}")
+                        ]
                     echo "Track pipeline triggered for ticket in: '${env.EXTRACTED_JIRA_ID}'"
                 }
             }

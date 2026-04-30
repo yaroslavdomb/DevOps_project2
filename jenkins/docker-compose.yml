@@ -16,6 +16,8 @@ services:
         image: yaroslavdomb/jenkins-slave:latest
         container_name: slave-app-proj2
         privileged: true
+        ports:
+            - "8092:8092"
         dns:
             - 127.0.0.11
             - 8.8.8.8
