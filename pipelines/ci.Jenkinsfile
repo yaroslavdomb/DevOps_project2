@@ -74,10 +74,18 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: "${REGISTRY_CREDS_ID}", 
                                                 usernameVariable: 'REGISTRY_USER', 
                                                 passwordVariable: 'REGISTRY_PASS')]) {
-                    sh "echo '${REGISTRY_PASS}' | docker login -u ${REGISTRY_USER} --password-stdin"
-                    echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into Registry ..."
-                    sh "docker push ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
-                    sh "docker logout"
+                    script {
+                        def dockerConfigDir = "${WORKSPACE}/.docker-tmp-${env.BUILD_NUMBER}"
+                        sh "mkdir -p ${dockerConfigDir}"
+
+                        withEnv(["DOCKER_CONFIG=${dockerConfigDir}"]) {
+                            sh 'echo "${REGISTRY_PASS}" | docker login -u ${REGISTRY_USER} --password-stdin'
+                            echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into Registry ..."
+                            sh "docker push ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
+                            sh "docker logout"
+                        }
+                        sh "rm -rf ${dockerConfigDir}"
+                    }
                 }
             }
         }

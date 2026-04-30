@@ -31,8 +31,8 @@ pipeline {
         stage('Add Deployment Comment to Jira') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${JIRA_CREDS_ID}", 
-                                                   usernameVariable: 'JIRA_USER', 
-                                                   passwordVariable: 'JIRA_API_TOKEN')]) {
+                                                    usernameVariable: 'JIRA_USER', 
+                                                    passwordVariable: 'JIRA_API_TOKEN')]) {
                     script {
                         def cdBuildLink = params.BUILD_URL_CD ?: 'N/A'
                         def commentBody = """
@@ -68,27 +68,29 @@ pipeline {
   }
 }
 """
-                        def response = sh(
-                            script: """
-                                curl -s -o /tmp/jira_comment_response.json -w "%{http_code}" \\
-                                -X POST \\
-                                -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \\
-                                -H "Content-Type: application/json" \\
-                                "${JIRA_BASE_URL}/rest/api/3/issue/${env.JIRA_TICKET_ID}/comment" \\
-                                -d '${commentBody}'
-                            """,
-                            returnStdout: true
-                        ).trim()
+                        withEnv(["JSON_PAYLOAD=${commentBody}"]) {
+                            def response = sh(
+                                script: '''
+                                    curl -s -o /tmp/jira_comment_response.json -w "%{http_code}" \\
+                                    -X POST \\
+                                    -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \\
+                                    -H "Content-Type: application/json" \\
+                                    "$JIRA_BASE_URL/rest/api/3/issue/$JIRA_TICKET_ID/comment" \\
+                                    -d "$JSON_PAYLOAD"
+                                ''',
+                                returnStdout: true
+                            ).trim()
 
-                        echo "Jira API response code: ${response}"
-                        def responseBody = readFile('/tmp/jira_comment_response.json')
-                        echo "Jira response body: ${responseBody}"
+                            echo "Jira API response code: ${response}"
+                            def responseBody = readFile('/tmp/jira_comment_response.json')
+                            echo "Jira response body: ${responseBody}"
 
-                        if (!response.startsWith('2')) {
-                            error "Failed to add comment to Jira ticket ${env.JIRA_TICKET_ID}. HTTP: ${response}"
+                            if (!response.startsWith('2')) {
+                                error "Failed to add comment to Jira ticket ${env.JIRA_TICKET_ID}. HTTP: ${response}"
+                            }
+
+                            echo "Comment added to ${env.JIRA_TICKET_ID} successfully."
                         }
-
-                        echo "Comment added to ${env.JIRA_TICKET_ID} successfully."
                     }
                 }
             }
@@ -97,16 +99,16 @@ pipeline {
         stage('Close Jira Ticket') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${JIRA_CREDS_ID}", 
-                                                   usernameVariable: 'JIRA_USER', 
-                                                   passwordVariable: 'JIRA_API_TOKEN')]) {
+                                                    usernameVariable: 'JIRA_USER', 
+                                                    passwordVariable: 'JIRA_API_TOKEN')]) {
                     script {
                         def transitionsResponse = sh(
-                            script: """
+                            script: '''
                                 curl -s \\
-                                -u "${env.JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \\
+                                -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \\
                                 -H "Content-Type: application/json" \\
-                                "${JIRA_BASE_URL}/rest/api/3/issue/${env.JIRA_TICKET_ID}/transitions"
-                            """,
+                                "$JIRA_BASE_URL/rest/api/3/issue/$JIRA_TICKET_ID/transitions"
+                            ''',
                             returnStdout: true
                         ).trim()
 
@@ -128,14 +130,14 @@ pipeline {
                         echo "Found 'Done' transition ID: ${env.TRANSITION_ID} (name: ${doneTransition.name})"
 
                         def closeResponse = sh(
-                            script: """
+                            script: '''
                                 curl -s -o /tmp/jira_close_response.json -w "%{http_code}" \\
                                 -X POST \\
-                                -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \\
+                                -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \\
                                 -H "Content-Type: application/json" \\
-                                "${JIRA_BASE_URL}/rest/api/3/issue/${env.JIRA_TICKET_ID}/transitions" \\
-                                -d '{"transition": {"id": "${env.TRANSITION_ID}"}}'
-                            """,
+                                "$JIRA_BASE_URL/rest/api/3/issue/$JIRA_TICKET_ID/transitions" \\
+                                -d "{\\"transition\\": {\\"id\\": \\"$TRANSITION_ID\\"}}"
+                            ''',
                             returnStdout: true
                         ).trim()
 
