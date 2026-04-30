@@ -58,9 +58,13 @@ pipeline {
             steps {
                 script {
                     def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    echo "New image under construction: ${env.DOCKER_REPO}:${commitHash}"
-                    sh "docker build -t ${env.DOCKER_REPO}:${commitHash} ./app"
                     env.IMAGE_TAG = commitHash
+                    if (!fileExists('app/Dockerfile')) {
+                        error "Dockerfile not found in ./app directory!"
+                    }
+                    
+                    echo "New image under construction: ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
+                    sh "docker build -t ${env.DOCKER_REPO}:${env.IMAGE_TAG} ./app"
                 }
             }
         }
@@ -68,9 +72,9 @@ pipeline {
         stage('Push to Registry') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${REGISTRY_CREDS_ID}", 
-                                                 usernameVariable: 'REGISTRY_USER', 
-                                                 passwordVariable: 'REGISTRY_PASS')]) {
-                    sh "echo ${REGISTRY_PASS} | docker login -u ${REGISTRY_USER} --password-stdin"
+                                                usernameVariable: 'REGISTRY_USER', 
+                                                passwordVariable: 'REGISTRY_PASS')]) {
+                    sh "echo '${REGISTRY_PASS}' | docker login -u ${REGISTRY_USER} --password-stdin"
                     echo "Pushing image ${env.DOCKER_REPO}:${env.IMAGE_TAG} into Registry ..."
                     sh "docker push ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
                     sh "docker logout"
@@ -81,26 +85,42 @@ pipeline {
         stage('Create PR to MAIN') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'github-api-pat-token-for-proj2', 
-                                                 passwordVariable: 'GITHUB_TOKEN', 
-                                                 usernameVariable: 'GITHUB_USER_UNUSED')]) {
+                                                passwordVariable: 'GITHUB_TOKEN', 
+                                                usernameVariable: 'GITHUB_USER_UNUSED')]) {
                     script {
                         def pullReqTitle = "Auto-PR from CI: ${env.IMAGE_TAG} [${env.JIRA_TICKET_ID}]"
                         def pullReqBody = "Automated PR created by Jenkins pipeline after successful CI build."
                         
-                        sh """
-                            curl -X POST \
-                            -H "Authorization: token ${GITHUB_TOKEN}" \
-                            -H "Accept: application/vnd.github.v3+json" \
-                            https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
-                            -d '{"title":"${pullReqTitle}", "head":"development", "base":"main", "body":"${pullReqBody}"}'
-                        """
+                        // s = prevent progress table appearence in the Jenkins log
+                        // o /dev/null = redirect output to null (as we need only response code) 
+                        // w "%{http_code}" = write returned code
+                        def response = sh(
+                            script: """
+                                curl -s -o /dev/null -w "%{http_code}" -X POST \
+                                -H "Authorization: token ${GITHUB_TOKEN}" \
+                                -H "Accept: application/vnd.github.v3+json" \
+                                https://api.github.com/repos/${env.GITHUB_USER}/${env.GITHUB_REPO}/pulls \
+                                -d '{"title":"${pullReqTitle}", "head":"development", "base":"main", "body":"${pullReqBody}"}'
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        def successCodes = ["200", "201", "204"]
+                        if (successCodes.contains(response)) {
+                            echo "Successfully created a new PR."
+                        } else if (response == "422") {
+                            echo "PR already exists. Existing PR will be updated automatically by git push."
+                        } else {
+                            error "GitHub API returned error ${response}. Failed to create PR."
+                        }
                     }
                 }
             }
         }
     }
 
-    //The order of operations is always the same (always → changed → fixed → regression → aborted → failure → success → unstable → cleanup)
+    //The order of operations is always the same:
+    // always → changed → fixed → regression → aborted → failure → success → unstable → cleanup
     // so it could be a trap using cleaning in always stage
     post {
         failure {
@@ -112,7 +132,18 @@ pipeline {
         }
 
         cleanup {
-            cleanWs()
+            script {
+                // delete local image after push
+                if (env.IMAGE_TAG) {
+                    echo "Cleaning up local image: ${env.DOCKER_REPO}:${env.IMAGE_TAG}"
+                    sh "docker rmi ${env.DOCKER_REPO}:${env.IMAGE_TAG} || true"
+                } else {
+                    echo "IMAGE_TAG was not defined (pipeline might have failed early). Skipping docker rmi."
+                }
+
+                //
+                cleanWs()
+            }
         }
     }
 }
