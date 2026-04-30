@@ -1,0 +1,65 @@
+
+Project source:
+    https://github.com/YakirBar/jenkins-public-labs/blob/main/%F0%9F%9A%80%20Mini%20Project%20%E2%80%93%20GitHub%20Webhooks%20%2B%20Jenkins%20%2B%20Jira.md
+    
+// **************************** __ PREPARATION __ ***************************
+
+1) create slave nodes (one time operation as the image will be saved in dockerhub):
+    cd jenkins/jenkins-slave
+    docker build -t yaroslavdomb/jenkins-slave:latest .
+    docker push yaroslavdomb/jenkins-slave:latest
+
+2) start Jenkins (no need after creating docker-compose.yaml)
+    docker run -d --rm --name jenkins-proj2 -p 8090:8080 -p 50000:50000 -e JAVA_OPTS="-Djava.net.preferIPv4Stack=true" -v jenkins_home:/var/jenkins_home jenkins/jenkins:lts-jdk21
+
+3) Save tokens in jenkins:
+    - open http://localhost:8090 in browser
+    - login with admin/Jenadmin123!
+    - manage Jenkins -> credentials -> add credentials -> ... (continue depend on keys types)
+
+4) check application locally (no need once starting to execute flow)
+    docker build -t my-app-test ./app
+    docker run -d -p 8082:80 --name test-xoGame my-app-test
+    docker stop test-xoGame 
+    docker rm -f test-xoGame
+
+5) Ports & URLS:
+    Local:
+        http://localhost:8090/ = Jenkins itself
+        http://localhost:8092/ = My application page (porting through DinD with 8092:8092:80 as Win:Docker-slave:Docker-nginx)
+
+    External:
+        https://github.com/yaroslavdomb/DevOps_project2/pull/16 = Git
+        https://yaroslavdomb.atlassian.net/jira/software/projects/KAN/boards/2 = Jira
+
+
+6) Proper commit steps:
+    6.1) Create ticket in Jira && save the ticket key (should be in format [A-Z]-[0-9])
+    6.2) Do the following in CLI:
+            git checkout development
+            git add .
+            git commit -m "<ticket key>: test-1 from full flow"
+            git push origin development
+
+// ********************************** __ FULL FLOW __ *******************************
+1) start project:
+    cd F:\LERNING\__2025\DevOps\PROJECTS\p2_JENK_GIT_DOCK_JIRA\jenkins
+    docker compose up -d
+    docker compose down 
+
+2) Flow:
+    git push --> development branch
+        
+    ci.Jenkinsfile (slave-infra)
+        --> docker build
+        --> docker push --> DockerHub
+        --> build job: trigger cd-pipeline
+        
+    cd.Jenkinsfile (slave-app)
+        --> docker pull ← DockerHub
+        --> docker rm + docker run
+        --> build job: trigger track-pipeline
+        
+    track.Jenkinsfile
+        --> add comment to Jira ticket
+        --> close Jira ticket

@@ -1,58 +1,58 @@
 <!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <title>xoGame</title>
-    <link rel="stylesheet" href="CSS/xoGame.css" />
-    <script type="module" src="JS/xoGame.js"></script>
-</head>
-<body>
-    <h1>XO Game!!!</h1>
+    <head>
+        <meta charset="UTF-8" />
+        <title>xoGame</title>
+        <link rel="stylesheet" href="CSS/xoGame.css" />
+        <script type="module" src="JS/xoGame.js"></script>
+    </head>
+    <body>
+        <h1>XO Game!!!</h1>
 
-    <div class="gamePack">
-        <div class="playBoard"></div>
+        <div class="gamePack">
+            <div class="playBoard"></div>
 
-        <div class="options">
-            <div class="playersData">
-                <fieldset>
-                    <legend>Player 1</legend>
-                    <label for="player1Name">Name:</label>
-                    <input type="text" id="player1Name" placeholder="..." required />
-                    <label for="player1Sign">Win symbol:</label>
-                    <input type="text" id="player1Sign" placeholder="X" value="X" />
+            <div class="options">
+                <div class="playersData">
+                    <fieldset>
+                        <legend>Player 1 TEST</legend>
+                        <label for="player1Name">Name:</label>
+                        <input type="text" id="player1Name" placeholder="..." required />
+                        <label for="player1Sign">Win symbol:</label>
+                        <input type="text" id="player1Sign" placeholder="X" value="X" />
+                    </fieldset>
+                    <fieldset>
+                        <legend>Player 2</legend>
+                        <label for="player2Name">Name:</label>
+                        <input type="text" id="player2Name" placeholder="..." required />
+                        <label for="player2Sign">Win symbol:</label>
+                        <input type="text" id="player2Sign" placeholder="O" value="O" />
+                    </fieldset>
+                    <button type="button" id="startGame">Start a new game</button>
+                </div>
+
+                <fieldset class="next-turn">
+                    <legend>Next turn</legend>
+                    <div class="row">
+                        <span class="label">Player name:</span>
+                        <div class="output" id="nextTurnPlayerName"></div>
+                    </div>
+                    <div class="row">
+                        <span class="label">Win symbol:</span>
+                        <div class="output" id="nextTurnPlayerSign"></div>
+                    </div>
                 </fieldset>
-                <fieldset>
-                    <legend>Player 2</legend>
-                    <label for="player2Name">Name:</label>
-                    <input type="text" id="player2Name" placeholder="..." required />
-                    <label for="player2Sign">Win symbol:</label>
-                    <input type="text" id="player2Sign" placeholder="O" value="O" />
-                </fieldset>
-                <button type="button" id="startGame">Start a new game</button>
             </div>
 
-            <fieldset class="next-turn">
-                <legend>Next turn</legend>
-                <div class="row">
-                    <span class="label">Player name:</span>
-                    <div class="output" id="nextTurnPlayerName"></div>
-                </div>
-                <div class="row">
-                    <span class="label">Win symbol:</span>
-                    <div class="output" id="nextTurnPlayerSign"></div>
-                </div>
-            </fieldset>
-        </div>
+            <div class="options" id="buttonsColumn">
+                <button type="button" id="clearBoardBtn">Clear board</button>
+                <button type="button" id="clearPlayerList">Clear players list</button>
+                <button type="button" id="showStatistic">Show statistic</button>
+                <button type="button" id="sortNames">Sort scores by name</button>
+                <button type="button" id="sortScores">Sort scores by score</button>
+            </div>
 
-        <div class="options" id="buttonsColumn">
-            <button type="button" id="clearBoardBtn">Clear board</button>
-            <button type="button" id="clearPlayerList">Clear players list</button>
-            <button type="button" id="showStatistic">Show statistic</button>
-            <button type="button" id="sortNames">Sort scores by name</button>
-            <button type="button" id="sortScores">Sort scores by score</button>
+            <div id="statisticBlock"></div>
         </div>
-
-        <div id="statisticBlock"></div>
-    </div>
-</body>
+    </body>
 </html>
